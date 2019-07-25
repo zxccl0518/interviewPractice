@@ -17,6 +17,7 @@ func (t *ThreadSafeSet) Iter() <-chan interface{} {
 		t.RLock()
 
 		for v := range t.s {
+			fmt.Println("无缓冲channel 写操作之前。---")
 			m <- v
 			fmt.Println("[写] Iter v = ", v)
 			// 这个位置读取不到任何内容,因为阻塞了, 创建的m channe 是一个无缓冲的通道, 当没有接收者的时候,会一直处于阻塞状态.
@@ -67,7 +68,7 @@ func unread() {
 }
 
 func main() {
-	read()
+	// read()
 
-	// unread()
+	unread()
 }
