@@ -158,6 +158,38 @@ func GoSchedTest() {
 
 //-----------------------------------------------------------
 
+// 这个题目的考点是 for 循环10次， 一瞬间就已经完成了，因为i没有作为参数传进来，所以剩下10个线程 共同访问一个变量数据 i， 而不是10个不同值，不同地址的i
+// 但是这个i变量资源 被互斥锁 mutex 保护起来， 访问这个资源 就要竞争，抢锁的资源
+// 此时 这个for循环中的变量i 是一个变量，循环期间被赋予了不同的值，但是地址只有一个。
+// 所以循环结束的时候， i已经是10了，10个协程抢到锁的资源的时候，拿到的i 的值是10 。
+// map 的key 是同一个值10 所以map 的长度也就是1 改进方式是 将i作为参数 传进去，这样就有了值拷贝，各个协程访问到的资源就是当时传入参数的值。
+func mutexTest() {
+	N := 10
+	m := make(map[int]int)
+
+	wg := &sync.WaitGroup{}
+	mu := &sync.Mutex{}
+	wg.Add(N)
+	for i := 0; i < N; i++ {
+		go func() {
+			defer wg.Done()
+			fmt.Println("获取 mutex 互斥锁之前 --- ")
+			mu.Lock()
+			fmt.Println("获取到了 mutex 互斥锁 ---  i = ", i)
+
+			m[i] = i
+			mu.Unlock()
+		}()
+	}
+	wg.Wait()
+	for i, v := range m {
+		fmt.Printf("i = %v, v = %v\n", i, v)
+	}
+	fmt.Println(len(m))
+}
+
+//-----------------------------------------------------------
+
 func main() {
 	// sliceTest1()
 
@@ -167,23 +199,7 @@ func main() {
 
 	// InterfaceTest2()
 
-	N := 10
-	m := make(map[int]int)
+	// mutexTest()
 
-	wg := &sync.WaitGroup{}
-	mu := &sync.Mutex{}
-	wg.Add(N)
-	for i := 0; i < N; i++ {
-		go func(i int) {
-			defer wg.Done()
-			mu.Lock()
-			m[i] = i
-			mu.Unlock()
-		}(i)
-	}
-	wg.Wait()
-	for i, v := range m {
-		fmt.Printf("i = %v, v = %v\n", i, v)
-	}
-	println(len(m))
+	GoSchedTest()
 }
