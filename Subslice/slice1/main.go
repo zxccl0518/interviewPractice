@@ -1,7 +1,6 @@
 package main
 
 import (
-	"bytes"
 	"container/heap"
 	"context"
 	"fmt"
@@ -245,9 +244,18 @@ func Utf8Test() {
 	fmt.Println(strings.IndexRune("helloworld", 'l'))
 	fmt.Println(strings.IndexRune("今晚打老虎", '打'))
 
-	fmt.Println("bytes.Count() = ", bytes.Count([]byte("abc123今晚打老虎"), []byte("打")))
-	fmt.Println("utf8.RuneCount() = ", utf8.RuneCount([]byte("abc123今晚打老虎")))
-	fmt.Println("strings.Count() = ", strings.Count("abc123今晚打老虎", "打"))
+	// >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+	// 此方法 可以实现不区 中英文混合的字符串，获取子串在源串中的位置。
+	str := "123今晚打老虎哈哈哈abc"
+	subStr := "打老虎"
+	res := strings.Index(str, subStr)
+	fmt.Println("res = ", res)
+	if res > 0 {
+		res = utf8.RuneCount([]byte(str)[0:res])
+	}
+
+	fmt.Println("res = ", res)
+	// >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 }
 
 //-----------------------------------------------------------
@@ -338,6 +346,59 @@ func UnicodeIndex(str, substr string) int {
 }
 
 //-----------------------------------------------------------
+// slice len cap
+// 这个例子说明了一个 slice的道理。
+// 1） 通过 截取另一个slice 的方式获得新的的slice，这种情况下 slice 底层维护的数组是同一个，那么对新的slice的修改(slice[x] 通过下标的方式修改) 也会影响到原来的slice 的数据。
+// 而且不论新slice改动了那个元素， 影响的是原slice 底层数组的对应的数据。  比如下面例子中 slice2[0] = 100,虽然改动的是slice2的第一个元素，但是实际的改动会影响到intSlice[0]个元素的值
+// 是因为 slice2是从原slice的[1] 开始截取的，  slice2[0]其实底层数组指向的是intSlice[1]。所以修改了slice2[0]  intSlice[0] 第0个元素也变了。
+// 2） append的方式， 如果append 的操作没有对 原slice 进行扩容操作，那么返回的slice 底层的数组还是原来的slice维护的底层的数组。 对新的slice下标方式的改动 会影响到原来的slice
+//  如果append 的操作对原来的slice 进行了底层数组的扩容操作， 那么返回的slice 会重新开辟一个 容量更大的数组， 将旧的数组的数据 拷贝过来，旧的数组废弃了，会被gc回收。
+func catSliceInfo() {
+	intSlice := []int{1, 2, 3, 4, 5}
+
+	slice1 := intSlice[:3]
+	slice2 := intSlice[1:3]
+	slice3 := intSlice[1:]
+
+	fmt.Println("------------------------------------111------------------------------")
+	fmt.Printf("slice1 len = %d, cap = %d, value = %v\n", len(slice1), cap(slice1), slice1)
+	fmt.Printf("slice2 len = %d, cap = %d, value = %v\n", len(slice2), cap(slice2), slice2)
+	fmt.Printf("slice3 len = %d, cap = %d, value = %v\n", len(slice3), cap(slice3), slice3)
+	fmt.Println("------------------------------------222------------------------------")
+	slice1[0] = 101
+	fmt.Printf("slice1 len = %d, cap = %d, value = %v\n", len(slice1), cap(slice1), slice1)
+	slice2[0] = 102
+	fmt.Printf("slice1 len = %d, cap = %d, value = %v\n", len(slice1), cap(slice1), slice1)
+	fmt.Printf("slice2 len = %d, cap = %d, value = %v\n", len(slice2), cap(slice2), slice2)
+	slice3[0] = 103
+	fmt.Printf("slice1 len = %d, cap = %d, value = %v\n", len(slice1), cap(slice1), slice1)
+	fmt.Printf("slice2 len = %d, cap = %d, value = %v\n", len(slice2), cap(slice2), slice2)
+	fmt.Printf("slice3 len = %d, cap = %d, value = %v\n", len(slice3), cap(slice3), slice3)
+
+	fmt.Println("------------------------------------333------------------------------")
+	slice3 = append(slice3, 3301, 3302)
+	// fmt.Printf("slice1 len = %d, cap = %d, value = %v\n", len(slice1), cap(slice1), slice1)
+	// fmt.Printf("slice2 len = %d, cap = %d, value = %v\n", len(slice2), cap(slice2), slice2)
+	// fmt.Printf("slice3 len = %d, cap = %d, value = %v\n", len(slice3), cap(slice3), slice3)
+	slice2 = append(slice2, 3201, 3202)
+	// fmt.Printf("slice1 len = %d, cap = %d, value = %v\n", len(slice1), cap(slice1), slice1)
+	// fmt.Printf("slice2 len = %d, cap = %d, value = %v\n", len(slice2), cap(slice2), slice2)
+	slice1 = append(slice1, 3101, 3102)
+	// fmt.Printf("slice1 len = %d, cap = %d, value = %v\n", len(slice1), cap(slice1), slice1)
+
+	fmt.Printf("slice1 len = %d, cap = %d, value = %v\n", len(slice1), cap(slice1), slice1)
+	fmt.Printf("slice2 len = %d, cap = %d, value = %v\n", len(slice2), cap(slice2), slice2)
+	fmt.Printf("slice3 len = %d, cap = %d, value = %v\n", len(slice3), cap(slice3), slice3)
+
+	fmt.Println("------------------------------------444------------------------------")
+	slice3[0] = 4003
+	fmt.Printf("slice3 len = %d, cap = %d, value = %v\n", len(slice3), cap(slice3), slice3)
+	slice1[0] = 4001
+	fmt.Printf("slice1 len = %d, cap = %d, value = %v\n", len(slice1), cap(slice1), slice1)
+
+}
+
+//-----------------------------------------------------------
 
 func main() {
 	// sliceTest1()
@@ -356,7 +417,7 @@ func main() {
 
 	// SliceSortingTest()
 
-	Utf8Test()
+	// Utf8Test()
 
 	// 应该是测试 go heap堆得一个 包里面的方法。
 	// HeapTest()
@@ -366,4 +427,6 @@ func main() {
 	// sliceAddress()
 
 	// fmt.Println(UnicodeIndex("abc123今晚打老虎", "打"))
+
+	catSliceInfo()
 }
